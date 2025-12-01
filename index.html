@@ -228,301 +228,303 @@
     </div> <!-- /calculator-grid -->
   </div>   <!-- /wrapper -->
 
-  <script>
-    // ---------- constants ----------
-    const INJURY_RATE_PER_FTE = 1540;   // NSC midpoint
-    const TRAINING_RATE_PER_FTE = 1286; // Onin Staffing
+<script>
+  // ---------- constants ----------
+  const INJURY_RATE_PER_FTE = 1540;   // NSC midpoint
+  const TRAINING_RATE_PER_FTE = 1286; // Onin Staffing
 
-    // Use a local asset to avoid CORS issues.
-    const LOGO_STRIP_URL = "./all_logos.png";
+  // Use a local asset to avoid CORS issues.
+  const LOGO_STRIP_URL = "./all_logos.png";
 
-    // ---------- input sync helpers ----------
-    function syncSliderAndInput(slider, inputId){
-      document.getElementById(inputId).value = slider.value;
-      calculateOutputs();
-      pingHeight();
+  // ---------- input sync helpers ----------
+  function syncSliderAndInput(slider, inputId){
+    document.getElementById(inputId).value = slider.value;
+    calculateOutputs();
+    pingHeight();
+  }
+  function syncInputAndSlider(input, sliderId){
+    document.getElementById(sliderId).value = input.value;
+    calculateOutputs();
+    pingHeight();
+  }
+  function adjustValue(id, delta, min, max){
+    const input = document.getElementById(id);
+    let value = parseInt(input.value) + delta;
+    value = Math.max(min, Math.min(max, value));
+    input.value = value;
+    calculateOutputs();
+    pingHeight();
+  }
+  function fmtMoney(n){ return "$" + Math.round(n).toLocaleString(); }
+
+  // ---------- core math / UI ----------
+  function calculateOutputs(){
+    const get = id => parseFloat(document.getElementById(id)?.value || 0);
+    const laborHours = get('labor_hours_val'),
+          shifts     = get('shifts_per_day_val'),
+          days       = get('days_per_week_val');
+
+    const annualCost  = get('annual_labor_cost_val'),
+          cobot       = get('cobot_cost'),
+          integration = get('integration_cost'),
+          training    = get('training_cost');
+
+    const fte            = ((laborHours * shifts * days * 52) / 2080);
+    const laborSavings   = fte * annualCost;
+    const totalInvestment= cobot + integration + training;
+
+    const injurySavings  = fte * INJURY_RATE_PER_FTE;
+    const trainingSavings= fte * TRAINING_RATE_PER_FTE;
+
+    const payback = laborSavings > 0 ? (totalInvestment / laborSavings) * 12 : 0;
+    const roi     = totalInvestment > 0 ? ((laborSavings + injurySavings + trainingSavings - totalInvestment) / totalInvestment) * 100 : 0;
+
+    document.getElementById('fte_summary').textContent       = fte.toFixed(2);
+    document.getElementById('labor_savings').textContent     = fmtMoney(laborSavings);
+    document.getElementById('total_investment').textContent  = fmtMoney(totalInvestment);
+    document.getElementById('payback_period').textContent    = (isFinite(payback)?payback.toFixed(1):'—') + " months";
+    document.getElementById('roi').textContent               = (isFinite(roi)?roi.toFixed(1):'—') + "%";
+    document.getElementById('injury_savings_view').textContent   = fmtMoney(injurySavings);
+    document.getElementById('training_savings_view').textContent = fmtMoney(trainingSavings);
+  }
+
+  function resetInputs() {
+    const blanks = {
+      task_name: '',
+      labor_hours: '',
+      labor_hours_val: '',
+      shifts_per_day: '',
+      shifts_per_day_val: '',
+      days_per_week_val: '1',
+      annual_labor_cost_val: '',
+      cobot_cost: '',
+      integration_cost: '',
+      training_cost: ''
+    };
+    for (const [id, val] of Object.entries(blanks)) {
+      const el = document.getElementById(id);
+      if (el) el.value = val;
     }
-    function syncInputAndSlider(input, sliderId){
-      document.getElementById(sliderId).value = input.value;
-      calculateOutputs();
-      pingHeight();
-    }
-    function adjustValue(id, delta, min, max){
-      const input = document.getElementById(id);
-      let value = parseInt(input.value) + delta;
-      value = Math.max(min, Math.min(max, value));
-      input.value = value;
-      calculateOutputs();
-      pingHeight();
-    }
-    function fmtMoney(n){ return "$" + Math.round(n).toLocaleString(); }
+    const laborSlider = document.getElementById('labor_hours');
+    if (laborSlider) laborSlider.value = laborSlider.min;
+    const shiftsSlider = document.getElementById('shifts_per_day');
+    if (shiftsSlider) shiftsSlider.value = shiftsSlider.min;
 
-    // ---------- core math / UI ----------
-    function calculateOutputs(){
-      const get = id => parseFloat(document.getElementById(id)?.value || 0);
-      const laborHours = get('labor_hours_val'),
-            shifts     = get('shifts_per_day_val'),
-            days       = get('days_per_week_val');
+    calculateOutputs();
+    pingHeight();
+  }
 
-      const annualCost  = get('annual_labor_cost_val'),
-            cobot       = get('cobot_cost'),
-            integration = get('integration_cost'),
-            training    = get('training_cost');
+  /* ================= PDF: single logo-strip header ================= */
 
-      const fte            = ((laborHours * shifts * days * 52) / 2080);
-      const laborSavings   = fte * annualCost;
-      const totalInvestment= cobot + integration + training;
+  // Draw a single header image inside margins (fills width when fitWidth=true)
+  async function drawLogoStrip(doc, opts = {}) {
+    const {
+      url = LOGO_STRIP_URL,
+      marginLeft = 10,   // mm
+      marginRight = 10,  // mm
+      top = 8,           // mm from top
+      fitWidth = true,   // make image span the usable width
+      maxHeightMM = 28,  // safety cap (mainly used if fitWidth=false)
+      underline = true,
+      color = "#6b7280"
+    } = opts;
 
-      const injurySavings  = fte * INJURY_RATE_PER_FTE;
-      const trainingSavings= fte * TRAINING_RATE_PER_FTE;
+    const pageWidth   = doc.internal.pageSize.getWidth();
+    const usableWidth = pageWidth - marginLeft - marginRight;
 
-      const payback = laborSavings > 0 ? (totalInvestment / laborSavings) * 12 : 0;
-      const roi     = totalInvestment > 0 ? ((laborSavings + injurySavings + trainingSavings - totalInvestment) / totalInvestment) * 100 : 0;
-
-      document.getElementById('fte_summary').textContent       = fte.toFixed(2);
-      document.getElementById('labor_savings').textContent     = fmtMoney(laborSavings);
-      document.getElementById('total_investment').textContent  = fmtMoney(totalInvestment);
-      document.getElementById('payback_period').textContent    = (isFinite(payback)?payback.toFixed(1):'—') + " months";
-      document.getElementById('roi').textContent               = (isFinite(roi)?roi.toFixed(1):'—') + "%";
-      document.getElementById('injury_savings_view').textContent   = fmtMoney(injurySavings);
-      document.getElementById('training_savings_view').textContent = fmtMoney(trainingSavings);
+    // Load as data URL
+    let dataURL = null;
+    try {
+      const res = await fetch(url, { mode: "cors", cache: "no-cache" });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const blob = await res.blob();
+      dataURL = await new Promise((resolve, reject) => {
+        const fr = new FileReader();
+        fr.onload = () => resolve(fr.result);
+        fr.onerror = reject;
+        fr.readAsDataURL(blob);
+      });
+    } catch (e) {
+      console.warn("Header image failed to load:", url, e);
+      return top + 4;
     }
 
-    function resetInputs() {
-      const blanks = {
-        task_name: '',
-        labor_hours: '',
-        labor_hours_val: '',
-        shifts_per_day: '',
-        shifts_per_day_val: '',
-        days_per_week_val: '1',
-        annual_labor_cost_val: '',
-        cobot_cost: '',
-        integration_cost: '',
-        training_cost: ''
-      };
-      for (const [id, val] of Object.entries(blanks)) {
-        const el = document.getElementById(id);
-        if (el) el.value = val;
-      }
-      const laborSlider = document.getElementById('labor_hours');
-      if (laborSlider) laborSlider.value = laborSlider.min;
-      const shiftsSlider = document.getElementById('shifts_per_day');
-      if (shiftsSlider) shiftsSlider.value = shiftsSlider.min;
+    // Measure natural size to preserve aspect ratio
+    const img = new Image();
+    await new Promise((resolve) => { img.onload = resolve; img.src = dataURL; });
 
-      calculateOutputs();
-      pingHeight();
-    }
+    const ratio = (img.width && img.height) ? (img.height / img.width) : (300 / 2400); // fallback ratio
 
-    /* ================= PDF: single logo-strip header ================= */
-
-    // Draw a single header image inside margins (fills width when fitWidth=true)
-    async function drawLogoStrip(doc, opts = {}) {
-      const {
-        url = LOGO_STRIP_URL,
-        marginLeft = 10,   // mm
-        marginRight = 10,  // mm
-        top = 8,           // mm from top
-        fitWidth = true,   // make image span the usable width
-        maxHeightMM = 28,  // safety cap (mainly used if fitWidth=false)
-        underline = true,
-        color = "#6b7280"
-      } = opts;
-
-      const pageWidth   = doc.internal.pageSize.getWidth();
-      const usableWidth = pageWidth - marginLeft - marginRight;
-
-      // Load as data URL
-      let dataURL = null;
-      try {
-        const res = await fetch(url, { mode: "cors", cache: "no-cache" });
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const blob = await res.blob();
-        dataURL = await new Promise((resolve, reject) => {
-          const fr = new FileReader();
-          fr.onload = () => resolve(fr.result);
-          fr.onerror = reject;
-          fr.readAsDataURL(blob);
-        });
-      } catch (e) {
-        console.warn("Header image failed to load:", url, e);
-        return top + 4;
-      }
-
-      // Measure natural size to preserve aspect ratio
-      const img = new Image();
-      await new Promise((resolve) => { img.onload = resolve; img.src = dataURL; });
-
-      const ratio = (img.width && img.height) ? (img.height / img.width) : (300 / 2400); // fallback ratio
-
-      let drawWidth, drawHeight;
-      if (fitWidth) {
+    let drawWidth, drawHeight;
+    if (fitWidth) {
+      drawWidth  = usableWidth;
+      drawHeight = drawWidth * ratio;
+    } else {
+      drawHeight = maxHeightMM;
+      drawWidth  = drawHeight / ratio;
+      if (drawWidth > usableWidth) { // guard against overflow
         drawWidth  = usableWidth;
         drawHeight = drawWidth * ratio;
-      } else {
-        drawHeight = maxHeightMM;
-        drawWidth  = drawHeight / ratio;
-        if (drawWidth > usableWidth) { // guard against overflow
-          drawWidth  = usableWidth;
-          drawHeight = drawWidth * ratio;
-        }
       }
-
-      const x = marginLeft + (usableWidth - drawWidth) / 2;
-      const y = top;
-
-      doc.addImage(dataURL, "PNG", x, y, drawWidth, drawHeight);
-
-      const afterY = y + drawHeight + 6;
-
-      if (underline) {
-        doc.setDrawColor(color);
-        doc.setLineWidth(.5);
-        doc.line(marginLeft, afterY, pageWidth - marginRight, afterY);
-      }
-
-      return afterY + 4; // next content Y
     }
 
-    // Dotted leader line helper
-    function writeLine(doc, y, label, value, opts = {}) {
-      const leftX = opts.leftX ?? 15, rightX = opts.rightX ?? 190, dotGap = 1.5;
-      const valueWidth = doc.getTextWidth(value);
-      const maxLabelWidth = rightX - leftX - valueWidth - 8;
-      const labelText = doc.splitTextToSize(label, maxLabelWidth);
+    const x = marginLeft + (usableWidth - drawWidth) / 2;
+    const y = top;
 
-      doc.setFont("helvetica","bold"); 
-      doc.text(labelText[0], leftX, y);
+    doc.addImage(dataURL, "PNG", x, y, drawWidth, drawHeight);
 
-      let dotX = leftX + doc.getTextWidth(labelText[0]) + 2, dotsEnd = rightX - valueWidth - 2;
-      while (dotX < dotsEnd) { doc.text('.', dotX, y); dotX += dotGap; }
+    const afterY = y + drawHeight + 6;
 
-      doc.setFont("helvetica","normal"); 
-      doc.text(value, rightX, y, { align: "right" });
-
-      for (let i = 1; i < labelText.length; i++) {
-        y += 8;
-        doc.setFont("helvetica","bold");
-        doc.text(labelText[i], leftX, y);
-      }
-      return y + 8;
+    if (underline) {
+      doc.setDrawColor(color);
+      doc.setLineWidth(.5);
+      doc.line(marginLeft, afterY, pageWidth - marginRight, afterY);
     }
 
-    // Main export
-    async function exportToPDF(){
-      const { jsPDF } = window.jspdf;
-      const doc = new jsPDF();
-      const neutral = "#6b7280"; // soft gray to match UI
+    return afterY + 4; // next content Y
+  }
 
-      // Header image (fills the width)
-      const bodyStartY = await drawLogoStrip(doc, {
-        url: LOGO_STRIP_URL,
-        marginLeft: 10,
-        marginRight: 10,
-        top: 8,
-        fitWidth: true,
-        maxHeightMM: 28,
-        underline: true,
-        color: neutral
-      });
+  // Dotted leader line helper
+  function writeLine(doc, y, label, value, opts = {}) {
+    const leftX = opts.leftX ?? 15, rightX = opts.rightX ?? 190, dotGap = 1.5;
+    const valueWidth = doc.getTextWidth(value);
+    const maxLabelWidth = rightX - leftX - valueWidth - 8;
+    const labelText = doc.splitTextToSize(label, maxLabelWidth);
 
-      // decode helpers
-      const d = (s) => {
-        if (s == null) return "";
-        const el = document.createElement("textarea");
-        el.innerHTML = String(s);
-        return el.value.replace(/\u00A0/g, " ");
-      };
-      const getTxt = (id) => {
-        const el = document.getElementById(id);
-        return d(el ? (el.value ?? el.textContent ?? "") : "");
-      };
+    doc.setFont("helvetica","bold"); 
+    doc.text(labelText[0], leftX, y);
 
-      // Title
-      doc.setFont("helvetica","bold");
-      doc.setFontSize(16);
-      doc.setTextColor(neutral);
-      doc.text("Cobot ROI & Payback Summary", 10, bodyStartY + 8);
+    let dotX = leftX + doc.getTextWidth(labelText[0]) + 2, dotsEnd = rightX - valueWidth - 2;
+    while (dotX < dotsEnd) { doc.text('.', dotX, y); dotX += dotGap; }
 
-      // Body
-      let y = bodyStartY + 18;
-      doc.setFontSize(12);
-      doc.setTextColor("#000");
+    doc.setFont("helvetica","normal"); 
+    doc.text(value, rightX, y, { align: "right" });
 
-      const section = (title) => {
-        doc.setFont("helvetica","bold");
-        doc.setTextColor(neutral);
-        doc.text(title, 10, y);
-        doc.setDrawColor(neutral);
-        doc.line(10, y+1.5, 70, y+1.5);
-        y += 8;
-        doc.setTextColor("#000");
-      };
-
-      // ===== Inputs =====
-      section("Inputs");
-      [
-        ["Task Name", getTxt("task_name")],
-        ["Labor Hours/Day", getTxt("labor_hours_val")],
-        ["Shifts/Day", getTxt("shifts_per_day_val")],
-        ["Days/Week", getTxt("days_per_week_val")],
-        ["Annual Labor Cost", d("$" + Number(document.getElementById("annual_labor_cost_val").value || 0).toLocaleString())],
-        ["Cobot System Cost", d("$" + Number(document.getElementById("cobot_cost").value || 0).toLocaleString())],
-        ["Programming + Integration Cost", d("$" + Number(document.getElementById("integration_cost").value || 0).toLocaleString())],
-        ["Training + Support Cost", d("$" + Number(document.getElementById("training_cost").value || 0).toLocaleString())],
-      ].forEach(([label, value]) => {
-        y = writeLine(doc, y, label, String(value));
-      });
-
-      // ===== Summary =====
-      section("Summary");
-      y = writeLine(doc, y, "FTEs Replaced", getTxt("fte_summary"));
-      const laborVal = getTxt("labor_savings");
-      y = writeLine(doc, y, "Annual Labor Savings", laborVal);
-
-      // Indented subs
-      doc.setFont("helvetica","bold");
-      doc.text("  Injury Reduction Savings", 15, y);
-      doc.setFont("helvetica","normal");
-      doc.text("(" + getTxt("injury_savings_view") + ")", 190, y, { align: "right" });
+    for (let i = 1; i < labelText.length; i++) {
       y += 8;
-
       doc.setFont("helvetica","bold");
-      doc.text("  Training Savings from Turnover", 15, y);
-      doc.setFont("helvetica","normal");
-      doc.text("(" + getTxt("training_savings_view") + ")", 190, y, { align: "right" });
-      y += 8;
-
-      y = writeLine(doc, y, "Total Investment", getTxt("total_investment"));
-      y = writeLine(doc, y, "Payback Period", getTxt("payback_period"));
-      y = writeLine(doc, y, "First Year ROI", getTxt("roi"));
-
-      doc.save("cobot-roi-summary.pdf");
+      doc.text(labelText[i], leftX, y);
     }
+    return y + 8;
+  }
 
-    // ---------- iframe auto-resize (for embedding) ----------
-    function postHeight(){
-      const h = Math.max(
-        document.documentElement.scrollHeight,
-        document.body.scrollHeight
-      );
-      // Post a message the parent can listen for to resize the iframe
-      if (window.parent && window.parent !== window) {
-        window.parent.postMessage({ type:'roiCalcHeight', height:h }, '*');
-      }
-    }
-    const pingHeight = () => { try { postHeight(); } catch{} };
+  // Main export
+  async function exportToPDF(){
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+    const neutral = "#6b7280"; // soft gray to match UI
 
-    window.addEventListener('load', () => {
-      calculateOutputs();
-      postHeight();
-      // Observe size changes
-      try {
-        new ResizeObserver(postHeight).observe(document.body);
-      } catch {}
+    // Header image (fills the width)
+    const bodyStartY = await drawLogoStrip(doc, {
+      url: LOGO_STRIP_URL,
+      marginLeft: 10,
+      marginRight: 10,
+      top: 8,
+      fitWidth: true,
+      maxHeightMM: 28,
+      underline: true,
+      color: neutral
     });
-    document.addEventListener('input', postHeight, true);
-  </script>
+
+    // decode helpers
+    const d = (s) => {
+      if (s == null) return "";
+      const el = document.createElement("textarea");
+      el.innerHTML = String(s);
+      return el.value.replace(/\u00A0/g, " ");
+    };
+    const getTxt = (id) => {
+      const el = document.getElementById(id);
+      return d(el ? (el.value ?? el.textContent ?? "") : "");
+    };
+
+    // Title
+    doc.setFont("helvetica","bold");
+    doc.setFontSize(16);
+    doc.setTextColor(neutral);
+    doc.text("Cobot ROI & Payback Summary", 10, bodyStartY + 8);
+
+    // Body
+    let y = bodyStartY + 18;
+    doc.setFontSize(12);
+    doc.setTextColor("#000");
+
+    const section = (title) => {
+      doc.setFont("helvetica","bold");
+      doc.setTextColor(neutral);
+      doc.text(title, 10, y);
+      doc.setDrawColor(neutral);
+      doc.line(10, y+1.5, 70, y+1.5);
+      y += 8;
+      doc.setTextColor("#000");
+    };
+
+    // ===== Inputs =====
+    section("Inputs");
+    [
+      ["Task Name", getTxt("task_name")],
+      ["Labor Hours/Day", getTxt("labor_hours_val")],
+      ["Shifts/Day", getTxt("shifts_per_day_val")],
+      ["Days/Week", getTxt("days_per_week_val")],
+      ["Annual Labor Cost", d("$" + Number(document.getElementById("annual_labor_cost_val").value || 0).toLocaleString())],
+      ["Cobot System Cost", d("$" + Number(document.getElementById("cobot_cost").value || 0).toLocaleString())],
+      ["Programming + Integration Cost", d("$" + Number(document.getElementById("integration_cost").value || 0).toLocaleString())],
+      ["Training + Support Cost", d("$" + Number(document.getElementById("training_cost").value || 0).toLocaleString())],
+    ].forEach(([label, value]) => {
+      y = writeLine(doc, y, label, String(value));
+    });
+
+    // ===== Summary =====
+    section("Summary");
+    y = writeLine(doc, y, "FTEs Replaced", getTxt("fte_summary"));
+    const laborVal = getTxt("labor_savings");
+    y = writeLine(doc, y, "Annual Labor Savings", laborVal);
+
+    // Indented subs
+    doc.setFont("helvetica","bold");
+    doc.text("  Injury Reduction Savings", 15, y);
+    doc.setFont("helvetica","normal");
+    doc.text("(" + getTxt("injury_savings_view") + ")", 190, y, { align: "right" });
+    y += 8;
+
+    doc.setFont("helvetica","bold");
+    doc.text("  Training Savings from Turnover", 15, y);
+    doc.setFont("helvetica","normal");
+    doc.text("(" + getTxt("training_savings_view") + ")", 190, y, { align: "right" });
+    y += 8;
+
+    y = writeLine(doc, y, "Total Investment", getTxt("total_investment"));
+    y = writeLine(doc, y, "Payback Period", getTxt("payback_period"));
+    y = writeLine(doc, y, "First Year ROI", getTxt("roi"));
+
+    doc.save("cobot-roi-summary.pdf");
+  }
+
+  // ---------- iframe auto-resize (for embedding) ----------
+  function postHeight(){
+    const h = Math.max(
+      document.documentElement.scrollHeight,
+      document.body.scrollHeight
+    );
+    // Post a message the parent can listen for to resize the iframe
+    if (window.parent && window.parent !== window) {
+      window.parent.postMessage({ type:'roiCalcHeight', height:h }, '*');
+    }
+  }
+  const pingHeight = () => { try { postHeight(); } catch{} };
+
+  window.addEventListener('load', () => {
+    calculateOutputs();
+    postHeight();
+    // Observe size changes
+    try {
+      new ResizeObserver(postHeight).observe(document.body);
+    } catch {}
+  });
+  document.addEventListener('input', postHeight, true);
+</script>
+
 </body>
 </html>
+
 
