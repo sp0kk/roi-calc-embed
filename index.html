@@ -1,534 +1,942 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>ROI Calculator (Embed)</title>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>ROI Calculator (Embed)</title>
 
-  <!-- jsPDF (for PDF export) -->
-  <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <!-- jsPDF (for PDF export) -->
+    <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
-  <style>
-    /* ===== Soft Light-Gray Theme Variables ===== */
-    #cobot-calculator-wrapper.neutral{
-      --primary:#6b7280;          /* accent (gray-500) */
-      --primary-contrast:#ffffff; /* text on primary */
-      --text:#374151;             /* main text (gray-700) */
-      --muted:#eef2f7;            /* very light borders/fills */
-      --muted-2:#e2e8f0;          /* light border hover */
-      --bg:#ffffff;               /* page bg */
-      --card:#ffffff;             /* card bg */
-      --focus:#9ca3af;            /* focus ring (gray-400) */
-      --track:#d1d5db;            /* slider track (gray-300) */
-      --shadow:0 1px 2px rgba(0,0,0,.04), 0 2px 8px rgba(0,0,0,.03);
-    }
+    <style>
+      /* ===== Soft Light-Gray Theme Variables ===== */
+      #cobot-calculator-wrapper.neutral {
+        --primary: #6b7280; /* accent (gray-500) */
+        --primary-contrast: #ffffff; /* text on primary */
+        --text: #374151; /* main text (gray-700) */
+        --muted: #eef2f7; /* very light borders/fills */
+        --muted-2: #e2e8f0; /* light border hover */
+        --bg: #ffffff; /* page bg */
+        --card: #ffffff; /* card bg */
+        --focus: #9ca3af; /* focus ring (gray-400) */
+        --track: #d1d5db; /* slider track (gray-300) */
+        --shadow: 0 1px 2px rgba(0, 0, 0, 0.04), 0 2px 8px rgba(0, 0, 0, 0.03);
+      }
 
-    /* ===== Base / Layout ===== */
-    #cobot-calculator-wrapper{
-      width:100%;max-width:1200px;margin:0 auto;padding:1.5rem;
-      box-sizing:border-box;font-family:Roboto,system-ui,-apple-system,Segoe UI,Helvetica,Arial,sans-serif;
-      color:var(--text);background:var(--bg);overflow-x:hidden;
-    }
-    #cobot-calculator-wrapper button,
-    #cobot-calculator-wrapper input,
-    #cobot-calculator-wrapper select,
-    #cobot-calculator-wrapper textarea { font-family:inherit; }
+      /* ===== Base / Layout ===== */
+      #cobot-calculator-wrapper {
+        width: 100%;
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 1.5rem;
+        box-sizing: border-box;
+        font-family: Roboto, system-ui, -apple-system, Segoe UI, Helvetica,
+          Arial, sans-serif;
+        color: var(--text);
+        background: var(--bg);
+        overflow-x: hidden;
+      }
+      #cobot-calculator-wrapper button,
+      #cobot-calculator-wrapper input,
+      #cobot-calculator-wrapper select,
+      #cobot-calculator-wrapper textarea {
+        font-family: inherit;
+      }
 
-    .calculator-grid{display:flex;flex-direction:row;align-items:flex-start;gap:2rem;width:100%;}
-    .input-holder{flex:0 1 62%;min-width:560px;display:flex;flex-direction:column;gap:1.25rem;}
-    .output-holder{flex:0 1 38%;min-width:320px;display:flex;align-items:flex-start;justify-content:center;}
-    .output-center{display:flex;flex-direction:column;align-items:center;gap:.9rem;width:100%;}
+      .calculator-grid {
+        display: flex;
+        flex-direction: row;
+        align-items: flex-start;
+        gap: 2rem;
+        width: 100%;
+      }
+      .input-holder {
+        flex: 0 1 62%;
+        min-width: 560px;
+        display: flex;
+        flex-direction: column;
+        gap: 1.25rem;
+      }
+      .output-holder {
+        flex: 0 1 38%;
+        min-width: 320px;
+        display: flex;
+        align-items: flex-start;
+        justify-content: center;
+      }
+      .output-center {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 0.9rem;
+        width: 100%;
+      }
 
-    /* ===== Fields ===== */
-    .field{display:flex;justify-content:space-between;align-items:center;gap:1rem;}
-    .field-title{flex:0 0 260px;font-weight:600;font-size:.95rem;color:#374151;}
-    .input-wrapper{display:flex;align-items:center;flex:1;gap:.5rem;justify-content:flex-end;flex-wrap:wrap;}
-    .tooltip-icon{
-      margin-left:6px;font-weight:700;color:var(--primary);cursor:help;border-radius:999px;padding:0 6px;font-size:.72rem;
-      display:inline-flex;align-items:center;justify-content:center;height:18px;min-width:18px;border:1px solid var(--muted-2);background:var(--card);
-    }
-    .muted-note{opacity:.7;font-size:.9rem}
+      /* ===== Fields ===== */
+      .field {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 1rem;
+      }
+      .field-title {
+        flex: 0 0 260px;
+        font-weight: 600;
+        font-size: 0.95rem;
+        color: #374151;
+      }
+      .input-wrapper {
+        display: flex;
+        align-items: center;
+        flex: 1;
+        gap: 0.5rem;
+        justify-content: flex-end;
+        flex-wrap: wrap;
+      }
+      .tooltip-icon {
+        margin-left: 6px;
+        font-weight: 700;
+        color: var(--primary);
+        cursor: help;
+        border-radius: 999px;
+        padding: 0 6px;
+        font-size: 0.72rem;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        height: 18px;
+        min-width: 18px;
+        border: 1px solid var(--muted-2);
+        background: var(--card);
+      }
+      .muted-note {
+        opacity: 0.7;
+        font-size: 0.9rem;
+      }
 
-    input[type=number]::-webkit-inner-spin-button,input[type=number]::-webkit-outer-spin-button{-webkit-appearance:none;margin:0;}
-    input[type=number]{-moz-appearance:textfield;}
-    input[type=range]{flex:1;height:4px;background:var(--track);border-radius:2px;outline:none;}
-    input[type=range]::-webkit-slider-thumb,
-    input[type=range]::-moz-range-thumb{width:14px;height:14px;background:var(--primary);border-radius:50%;cursor:pointer;}
-    input[type="number"],input[type="text"]{
-      font-size:.95rem;color:#4b5563;background:transparent;border:none;border-bottom:1px solid var(--muted);
-      text-align:center;padding:.2rem 0;box-sizing:content-box;outline:none;
-    }
-    input[type="number"]:focus,input[type="text"]:focus{border-bottom-color:var(--focus);}
-    .as-input{font-size:.95rem;color:#4b5563;border-bottom:1px solid var(--muted);padding:.2rem 0;min-width:8ch;text-align:center;display:inline-block;}
-    .input-small{min-width:3ch;max-width:4ch;}
-    .input-wide{min-width:20ch;}
-    .input-dollar{min-width:8ch;max-width:12ch;}
-    .input-no-underline{border-bottom:none!important;}
+      input[type="number"]::-webkit-inner-spin-button,
+      input[type="number"]::-webkit-outer-spin-button {
+        -webkit-appearance: none;
+        margin: 0;
+      }
+      input[type="number"] {
+        -moz-appearance: textfield;
+      }
+      input[type="range"] {
+        flex: 1;
+        height: 4px;
+        background: var(--track);
+        border-radius: 2px;
+        outline: none;
+      }
+      input[type="range"]::-webkit-slider-thumb,
+      input[type="range"]::-moz-range-thumb {
+        width: 14px;
+        height: 14px;
+        background: var(--primary);
+        border-radius: 50%;
+        cursor: pointer;
+      }
+      input[type="number"],
+      input[type="text"] {
+        font-size: 0.95rem;
+        color: #4b5563;
+        background: transparent;
+        border: none;
+        border-bottom: 1px solid var(--muted);
+        text-align: center;
+        padding: 0.2rem 0;
+        box-sizing: content-box;
+        outline: none;
+      }
+      input[type="number"]:focus,
+      input[type="text"]:focus {
+        border-bottom-color: var(--focus);
+      }
+      .as-input {
+        font-size: 0.95rem;
+        color: #4b5563;
+        border-bottom: 1px solid var(--muted);
+        padding: 0.2rem 0;
+        min-width: 8ch;
+        text-align: center;
+        display: inline-block;
+      }
+      .input-small {
+        min-width: 3ch;
+        max-width: 4ch;
+      }
+      .input-wide {
+        min-width: 20ch;
+      }
+      .input-dollar {
+        min-width: 8ch;
+        max-width: 12ch;
+      }
+      .input-no-underline {
+        border-bottom: none !important;
+      }
 
-    .stepper button{
-      background:var(--primary);border:none;color:var(--primary-contrast);
-      font-size:.9rem;width:24px;height:24px;border-radius:50%;cursor:pointer;line-height:1;
-    }
-    .stepper button:hover{filter:brightness(0.95)}
+      .stepper button {
+        background: var(--primary);
+        border: none;
+        color: var(--primary-contrast);
+        font-size: 0.9rem;
+        width: 24px;
+        height: 24px;
+        border-radius: 50%;
+        cursor: pointer;
+        line-height: 1;
+      }
+      .stepper button:hover {
+        filter: brightness(0.95);
+      }
 
-    /* ===== Outputs — FLAT (no card) ===== */
-    .output-field{
-      display:flex;flex-direction:column;align-items:center;background:transparent;padding:0;border:none;border-radius:0;box-shadow:none;min-width:auto;margin:.25rem 0;width:100%;
-    }
-    .output-label{font-size:.85rem;font-weight:600;margin-bottom:.15rem;color:#6b7280;}  /* soft gray */
-    .output-value{font-size:1.6rem;font-weight:700;color:#4b5563;}                    /* gray-600 */
+      /* ===== Outputs — FLAT (no card) ===== */
+      .output-field {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        background: transparent;
+        padding: 0;
+        border: none;
+        border-radius: 0;
+        box-shadow: none;
+        min-width: auto;
+        margin: 0.25rem 0;
+        width: 100%;
+      }
+      .output-label {
+        font-size: 0.85rem;
+        font-weight: 600;
+        margin-bottom: 0.15rem;
+        color: #6b7280;
+      } /* soft gray */
+      .output-value {
+        font-size: 1.6rem;
+        font-weight: 700;
+        color: #4b5563;
+      } /* gray-600 */
 
-    /* ===== Buttons (uniform weights) ===== */
-    .btn-stack{width:100%;display:flex;flex-direction:column;gap:.7rem;align-items:center;}
-    .btn-primary{
-      width:80%;max-width:380px;background:var(--primary);
-      color:var(--primary-contrast) !important;
-      border:none;padding:.9rem 1.2rem;font-weight:600;font-size:.95rem;border-radius:8px;cursor:pointer;
-      transition:filter .15s ease, transform .05s ease;
-    }
-    .btn-primary:hover,
-    .btn-primary:focus{
-      background:var(--primary) !important;
-      color:var(--primary-contrast) !important;
-      filter:brightness(0.92);
-    }
-    .btn-primary:active{
-      background:var(--primary) !important;
-      color:var(--primary-contrast) !important;
-      transform:translateY(1px);
-    }
+      /* ===== Buttons (uniform weights) ===== */
+      .btn-stack {
+        width: 100%;
+        display: flex;
+        flex-direction: column;
+        gap: 0.7rem;
+        align-items: center;
+      }
+      .btn-primary {
+        width: 80%;
+        max-width: 380px;
+        background: var(--primary);
+        color: var(--primary-contrast) !important;
+        border: none;
+        padding: 0.9rem 1.2rem;
+        font-weight: 600;
+        font-size: 0.95rem;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: filter 0.15s ease, transform 0.05s ease;
+      }
+      .btn-primary:hover,
+      .btn-primary:focus {
+        background: var(--primary) !important;
+        color: var(--primary-contrast) !important;
+        filter: brightness(0.92);
+      }
+      .btn-primary:active {
+        background: var(--primary) !important;
+        color: var(--primary-contrast) !important;
+        transform: translateY(1px);
+      }
 
-    .btn-row{display:flex;gap:.7rem;width:70%;max-width:380px;justify-content:center;}
-    .btn-secondary{
-      flex:0 1 auto;background:#f3f4f6;border:1px solid #e5e7eb;padding:.75rem .9rem;border-radius:8px;cursor:pointer;font-size:.9rem;line-height:1.2;color:#374151;font-weight:600;
-      transition:background .15s ease,transform .05s ease,border-color .15s ease;
-    }
-    .btn-secondary:hover{background:#e5e7eb;border-color:#d1d5db;}
-    .btn-secondary:active{transform:translateY(1px);}
+      .btn-row {
+        display: flex;
+        gap: 0.7rem;
+        width: 70%;
+        max-width: 380px;
+        justify-content: center;
+      }
+      .btn-secondary {
+        flex: 0 1 auto;
+        background: #f3f4f6;
+        border: 1px solid #e5e7eb;
+        padding: 0.75rem 0.9rem;
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: 0.9rem;
+        line-height: 1.2;
+        color: #374151;
+        font-weight: 600;
+        transition: background 0.15s ease, transform 0.05s ease,
+          border-color 0.15s ease;
+      }
+      .btn-secondary:hover {
+        background: #e5e7eb;
+        border-color: #d1d5db;
+      }
+      .btn-secondary:active {
+        transform: translateY(1px);
+      }
 
-    /* ===== Responsive ===== */
-    @media (max-width:980px){
-      .input-holder{min-width:0;flex:1 1 100%;}
-      .output-holder{min-width:0;flex:1 1 100%;}
-      .calculator-grid{flex-direction:column;}
-      .btn-row{flex-direction:column;width:100%;max-width:none;}
-      .btn-primary{width:100%;max-width:none;}
-    }
-  </style>
-</head>
-<body>
+      /* ===== Responsive ===== */
+      @media (max-width: 980px) {
+        .input-holder {
+          min-width: 0;
+          flex: 1 1 100%;
+        }
+        .output-holder {
+          min-width: 0;
+          flex: 1 1 100%;
+        }
+        .calculator-grid {
+          flex-direction: column;
+        }
+        .btn-row {
+          flex-direction: column;
+          width: 100%;
+          max-width: none;
+        }
+        .btn-primary {
+          width: 100%;
+          max-width: none;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div id="cobot-calculator-wrapper" class="neutral">
+      <div class="calculator-grid">
+        <!-- ================== INPUTS ================== -->
+        <div class="input-holder">
+          <div class="field">
+            <div class="field-title">
+              Task Name
+              <span
+                class="tooltip-icon"
+                title="Description of the process to be automated (e.g., 'Box Loading')"
+                >?</span
+              >
+            </div>
+            <div class="input-wrapper">
+              <input
+                type="text"
+                id="task_name"
+                value="Box Loading"
+                class="input-wide"
+              />
+            </div>
+          </div>
 
-  <div id="cobot-calculator-wrapper" class="neutral">
-    <div class="calculator-grid">
-      <!-- ================== INPUTS ================== -->
-      <div class="input-holder">
-        <div class="field">
-          <div class="field-title">Task Name <span class="tooltip-icon" title="Description of the process to be automated (e.g., 'Box Loading')">?</span></div>
-          <div class="input-wrapper"><input type="text" id="task_name" value="Box Loading" class="input-wide"></div>
-        </div>
+          <div class="field">
+            <div class="field-title">
+              Labor Hours per Task/Day
+              <span
+                class="tooltip-icon"
+                title="Time currently spent on task per day"
+                >?</span
+              >
+            </div>
+            <div class="input-wrapper">
+              <input
+                type="range"
+                id="labor_hours"
+                min=".5"
+                max="24"
+                step="0.5"
+                value="12"
+                oninput="syncSliderAndInput(this, 'labor_hours_val')"
+              />
+              <input
+                type="number"
+                id="labor_hours_val"
+                step="0.5"
+                value="12"
+                oninput="syncInputAndSlider(this, 'labor_hours')"
+                class="input-small"
+              />
+            </div>
+          </div>
 
-        <div class="field">
-          <div class="field-title">Labor Hours per Task/Day <span class="tooltip-icon" title="Time currently spent on task per day">?</span></div>
-          <div class="input-wrapper">
-            <input type="range" id="labor_hours" min=".5" max="24" step="0.5" value="12" oninput="syncSliderAndInput(this, 'labor_hours_val')">
-            <input type="number" id="labor_hours_val" step="0.5" value="12" oninput="syncInputAndSlider(this, 'labor_hours')" class="input-small">
+          <div class="field">
+            <div class="field-title">
+              Shifts Per Day
+              <span class="tooltip-icon" title="Number of shifts per day"
+                >?</span
+              >
+            </div>
+            <div class="input-wrapper">
+              <input
+                type="range"
+                id="shifts_per_day"
+                min="1"
+                max="50"
+                value="2"
+                oninput="syncSliderAndInput(this, 'shifts_per_day_val')"
+              />
+              <input
+                type="number"
+                id="shifts_per_day_val"
+                value="2"
+                oninput="syncInputAndSlider(this, 'shifts_per_day')"
+                class="input-small"
+              />
+            </div>
+          </div>
+
+          <div class="field">
+            <div class="field-title">
+              Days Per Week
+              <span
+                class="tooltip-icon"
+                title="Number of days the facility operates per week"
+                >?</span
+              >
+            </div>
+            <div class="input-wrapper stepper">
+              <button onclick="adjustValue('days_per_week_val', -1, 1, 7)">
+                −
+              </button>
+              <input
+                type="number"
+                id="days_per_week_val"
+                min="1"
+                max="7"
+                value="5"
+                onchange="calculateOutputs()"
+                class="input-no-underline input-small"
+              />
+              <button onclick="adjustValue('days_per_week_val', 1, 1, 7)">
+                +
+              </button>
+            </div>
+          </div>
+
+          <div class="field">
+            <div class="field-title">
+              Annual Labor Cost per Role
+              <span
+                class="tooltip-icon"
+                title="Fully burdened annual cost of one FTE (e.g., $65,000)"
+                >?</span
+              >
+            </div>
+            <div class="input-wrapper">
+              <span>$</span>
+              <input
+                type="number"
+                id="annual_labor_cost_val"
+                value="65000"
+                onchange="calculateOutputs()"
+                class="input-dollar"
+              />
+            </div>
+          </div>
+
+          <div class="field">
+            <div class="field-title">
+              Cobot System Cost
+              <span
+                class="tooltip-icon"
+                title="Includes hardware and accessories (e.g., $50,000)"
+                >?</span
+              >
+            </div>
+            <div class="input-wrapper">
+              <span>$</span>
+              <input
+                type="number"
+                id="cobot_cost"
+                value="50000"
+                class="input-dollar"
+              />
+            </div>
+          </div>
+
+          <div class="field">
+            <div class="field-title">
+              Programming + Integration Cost
+              <span
+                class="tooltip-icon"
+                title="Setup and deployment cost (e.g., $5,000)"
+                >?</span
+              >
+            </div>
+            <div class="input-wrapper">
+              <span>$</span>
+              <input
+                type="number"
+                id="integration_cost"
+                value="5000"
+                class="input-dollar"
+              />
+            </div>
+          </div>
+
+          <div class="field">
+            <div class="field-title">
+              Training + Support Cost
+              <span
+                class="tooltip-icon"
+                title="Cost of onboarding and support (e.g., $3,000)"
+                >?</span
+              >
+            </div>
+            <div class="input-wrapper">
+              <span>$</span>
+              <input
+                type="number"
+                id="training_cost"
+                value="3000"
+                class="input-dollar"
+              />
+            </div>
+          </div>
+
+          <!-- (Removed the redundant "Cost Savings" row) -->
+
+          <div class="field">
+            <div class="field-title">
+              Injury Reduction Savings
+              <span
+                class="tooltip-icon"
+                title="Auto: FTEs × $1,540. National Safety Council (2023) avg workplace injury cost range $1,080–$2,000 per worker/year."
+                >?</span
+              >
+            </div>
+            <div class="input-wrapper">
+              <span id="injury_savings_view" class="as-input">$0</span>
+            </div>
+          </div>
+
+          <div class="field">
+            <div class="field-title">
+              Training Savings from Turnover
+              <span
+                class="tooltip-icon"
+                title="Auto: FTEs × $1,286. Onin Staffing average direct training cost per employee/year."
+                >?</span
+              >
+            </div>
+            <div class="input-wrapper">
+              <span id="training_savings_view" class="as-input">$0</span>
+            </div>
           </div>
         </div>
 
-        <div class="field">
-          <div class="field-title">Shifts Per Day <span class="tooltip-icon" title="Number of shifts per day">?</span></div>
-          <div class="input-wrapper">
-            <input type="range" id="shifts_per_day" min="1" max="50" value="2" oninput="syncSliderAndInput(this, 'shifts_per_day_val')">
-            <input type="number" id="shifts_per_day_val" value="2" oninput="syncInputAndSlider(this, 'shifts_per_day')" class="input-small">
-          </div>
-        </div>
+        <!-- ================== OUTPUTS ================== -->
+        <div class="output-holder">
+          <div class="output-center">
+            <div class="output-field">
+              <div class="output-label">Costs Reduced By</div>
+              <div class="output-value" id="labor_savings">$0</div>
+            </div>
+            <div class="output-field">
+              <div class="output-label">First Year ROI</div>
+              <div class="output-value" id="roi">0%</div>
+            </div>
+            <div class="output-field">
+              <div class="output-label">Pays For Itself In</div>
+              <div class="output-value" id="payback_period">0 months</div>
+            </div>
+            <div class="output-field">
+              <div class="output-label">FTEs Replaced</div>
+              <div class="output-value" id="fte_summary">0</div>
+            </div>
+            <div class="output-field">
+              <div class="output-label">Total Investment</div>
+              <div class="output-value" id="total_investment">$0</div>
+            </div>
 
-        <div class="field">
-          <div class="field-title">Days Per Week <span class="tooltip-icon" title="Number of days the facility operates per week">?</span></div>
-          <div class="input-wrapper stepper">
-            <button onclick="adjustValue('days_per_week_val', -1, 1, 7)">−</button>
-            <input type="number" id="days_per_week_val" min="1" max="7" value="5" onchange="calculateOutputs()" class="input-no-underline input-small">
-            <button onclick="adjustValue('days_per_week_val', 1, 1, 7)">+</button>
-          </div>
-        </div>
-
-        <div class="field">
-          <div class="field-title">Annual Labor Cost per Role <span class="tooltip-icon" title="Fully burdened annual cost of one FTE (e.g., $65,000)">?</span></div>
-          <div class="input-wrapper">
-            <span>$</span>
-            <input type="number" id="annual_labor_cost_val" value="65000" onchange="calculateOutputs()" class="input-dollar">
-          </div>
-        </div>
-
-        <div class="field">
-          <div class="field-title">Cobot System Cost <span class="tooltip-icon" title="Includes hardware and accessories (e.g., $50,000)">?</span></div>
-          <div class="input-wrapper">
-            <span>$</span>
-            <input type="number" id="cobot_cost" value="50000" class="input-dollar">
-          </div>
-        </div>
-
-        <div class="field">
-          <div class="field-title">Programming + Integration Cost <span class="tooltip-icon" title="Setup and deployment cost (e.g., $5,000)">?</span></div>
-          <div class="input-wrapper">
-            <span>$</span>
-            <input type="number" id="integration_cost" value="5000" class="input-dollar">
-          </div>
-        </div>
-
-        <div class="field">
-          <div class="field-title">Training + Support Cost <span class="tooltip-icon" title="Cost of onboarding and support (e.g., $3,000)">?</span></div>
-          <div class="input-wrapper">
-            <span>$</span>
-            <input type="number" id="training_cost" value="3000" class="input-dollar">
-          </div>
-        </div>
-
-        <!-- (Removed the redundant "Cost Savings" row) -->
-
-        <div class="field">
-          <div class="field-title">
-            Injury Reduction Savings
-            <span class="tooltip-icon" title="Auto: FTEs × $1,540. National Safety Council (2023) avg workplace injury cost range $1,080–$2,000 per worker/year.">?</span>
-          </div>
-          <div class="input-wrapper">
-            <span id="injury_savings_view" class="as-input">$0</span>
-          </div>
-        </div>
-
-        <div class="field">
-          <div class="field-title">
-            Training Savings from Turnover
-            <span class="tooltip-icon" title="Auto: FTEs × $1,286. Onin Staffing average direct training cost per employee/year.">?</span>
-          </div>
-          <div class="input-wrapper">
-            <span id="training_savings_view" class="as-input">$0</span>
-          </div>
-        </div>
-      </div>
-
-      <!-- ================== OUTPUTS ================== -->
-      <div class="output-holder">
-        <div class="output-center">
-          <div class="output-field"><div class="output-label">Costs Reduced By</div><div class="output-value" id="labor_savings">$0</div></div>
-          <div class="output-field"><div class="output-label">First Year ROI</div><div class="output-value" id="roi">0%</div></div>
-          <div class="output-field"><div class="output-label">Pays For Itself In</div><div class="output-value" id="payback_period">0 months</div></div>
-          <div class="output-field"><div class="output-label">FTEs Replaced</div><div class="output-value" id="fte_summary">0</div></div>
-          <div class="output-field"><div class="output-label">Total Investment</div><div class="output-value" id="total_investment">$0</div></div>
-
-          <div class="btn-stack">
-            <button class="btn-primary" id="btn-export" onclick="exportToPDF()">Export Summary as PDF</button>
-            <div class="btn-row">
-              <button class="btn-secondary" id="btn-reset" onclick="resetInputs()">Reset</button>
+            <div class="btn-stack">
+              <button
+                class="btn-primary"
+                id="btn-export"
+                onclick="exportToPDF()"
+              >
+                Export Summary as PDF
+              </button>
+              <div class="btn-row">
+                <button
+                  class="btn-secondary"
+                  id="btn-reset"
+                  onclick="resetInputs()"
+                >
+                  Reset
+                </button>
+              </div>
             </div>
           </div>
         </div>
       </div>
-    </div> <!-- /calculator-grid -->
-  </div>   <!-- /wrapper -->
+      <!-- /calculator-grid -->
+    </div>
+    <!-- /wrapper -->
 
-<script>
-  // ---------- constants ----------
-  const INJURY_RATE_PER_FTE = 1540;   // NSC midpoint
-  const TRAINING_RATE_PER_FTE = 1286; // Onin Staffing
+    <script>
+      // ---------- constants ----------
+      const INJURY_RATE_PER_FTE = 1540; // NSC midpoint
+      const TRAINING_RATE_PER_FTE = 1286; // Onin Staffing
 
-  // Use a local asset to avoid CORS issues.
-  const LOGO_STRIP_URL = "./all_logos.png";
+      // Use a local asset to avoid CORS issues.
+      const LOGO_STRIP_URL = "./all_logos.png";
 
-  // ---------- input sync helpers ----------
-  function syncSliderAndInput(slider, inputId){
-    document.getElementById(inputId).value = slider.value;
-    calculateOutputs();
-    pingHeight();
-  }
-  function syncInputAndSlider(input, sliderId){
-    document.getElementById(sliderId).value = input.value;
-    calculateOutputs();
-    pingHeight();
-  }
-  function adjustValue(id, delta, min, max){
-    const input = document.getElementById(id);
-    let value = parseInt(input.value) + delta;
-    value = Math.max(min, Math.min(max, value));
-    input.value = value;
-    calculateOutputs();
-    pingHeight();
-  }
-  function fmtMoney(n){ return "$" + Math.round(n).toLocaleString(); }
-
-  // ---------- core math / UI ----------
-  function calculateOutputs(){
-    const get = id => parseFloat(document.getElementById(id)?.value || 0);
-    const laborHours = get('labor_hours_val'),
-          shifts     = get('shifts_per_day_val'),
-          days       = get('days_per_week_val');
-
-    const annualCost  = get('annual_labor_cost_val'),
-          cobot       = get('cobot_cost'),
-          integration = get('integration_cost'),
-          training    = get('training_cost');
-
-    const fte            = ((laborHours * shifts * days * 52) / 2080);
-    const laborSavings   = fte * annualCost;
-    const totalInvestment= cobot + integration + training;
-
-    const injurySavings  = fte * INJURY_RATE_PER_FTE;
-    const trainingSavings= fte * TRAINING_RATE_PER_FTE;
-
-    const payback = laborSavings > 0 ? (totalInvestment / laborSavings) * 12 : 0;
-    const roi     = totalInvestment > 0 ? ((laborSavings + injurySavings + trainingSavings - totalInvestment) / totalInvestment) * 100 : 0;
-
-    document.getElementById('fte_summary').textContent       = fte.toFixed(2);
-    document.getElementById('labor_savings').textContent     = fmtMoney(laborSavings);
-    document.getElementById('total_investment').textContent  = fmtMoney(totalInvestment);
-    document.getElementById('payback_period').textContent    = (isFinite(payback)?payback.toFixed(1):'—') + " months";
-    document.getElementById('roi').textContent               = (isFinite(roi)?roi.toFixed(1):'—') + "%";
-    document.getElementById('injury_savings_view').textContent   = fmtMoney(injurySavings);
-    document.getElementById('training_savings_view').textContent = fmtMoney(trainingSavings);
-  }
-
-  function resetInputs() {
-    const blanks = {
-      task_name: '',
-      labor_hours: '',
-      labor_hours_val: '',
-      shifts_per_day: '',
-      shifts_per_day_val: '',
-      days_per_week_val: '1',
-      annual_labor_cost_val: '',
-      cobot_cost: '',
-      integration_cost: '',
-      training_cost: ''
-    };
-    for (const [id, val] of Object.entries(blanks)) {
-      const el = document.getElementById(id);
-      if (el) el.value = val;
-    }
-    const laborSlider = document.getElementById('labor_hours');
-    if (laborSlider) laborSlider.value = laborSlider.min;
-    const shiftsSlider = document.getElementById('shifts_per_day');
-    if (shiftsSlider) shiftsSlider.value = shiftsSlider.min;
-
-    calculateOutputs();
-    pingHeight();
-  }
-
-  /* ================= PDF: single logo-strip header ================= */
-
-  // Draw a single header image inside margins (fills width when fitWidth=true)
-  async function drawLogoStrip(doc, opts = {}) {
-    const {
-      url = LOGO_STRIP_URL,
-      marginLeft = 10,   // mm
-      marginRight = 10,  // mm
-      top = 8,           // mm from top
-      fitWidth = true,   // make image span the usable width
-      maxHeightMM = 28,  // safety cap (mainly used if fitWidth=false)
-      underline = true,
-      color = "#6b7280"
-    } = opts;
-
-    const pageWidth   = doc.internal.pageSize.getWidth();
-    const usableWidth = pageWidth - marginLeft - marginRight;
-
-    // Load as data URL
-    let dataURL = null;
-    try {
-      const res = await fetch(url, { mode: "cors", cache: "no-cache" });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const blob = await res.blob();
-      dataURL = await new Promise((resolve, reject) => {
-        const fr = new FileReader();
-        fr.onload = () => resolve(fr.result);
-        fr.onerror = reject;
-        fr.readAsDataURL(blob);
-      });
-    } catch (e) {
-      console.warn("Header image failed to load:", url, e);
-      return top + 4;
-    }
-
-    // Measure natural size to preserve aspect ratio
-    const img = new Image();
-    await new Promise((resolve) => { img.onload = resolve; img.src = dataURL; });
-
-    const ratio = (img.width && img.height) ? (img.height / img.width) : (300 / 2400); // fallback ratio
-
-    let drawWidth, drawHeight;
-    if (fitWidth) {
-      drawWidth  = usableWidth;
-      drawHeight = drawWidth * ratio;
-    } else {
-      drawHeight = maxHeightMM;
-      drawWidth  = drawHeight / ratio;
-      if (drawWidth > usableWidth) { // guard against overflow
-        drawWidth  = usableWidth;
-        drawHeight = drawWidth * ratio;
+      // ---------- input sync helpers ----------
+      function syncSliderAndInput(slider, inputId) {
+        document.getElementById(inputId).value = slider.value;
+        calculateOutputs();
+        pingHeight();
       }
-    }
+      function syncInputAndSlider(input, sliderId) {
+        document.getElementById(sliderId).value = input.value;
+        calculateOutputs();
+        pingHeight();
+      }
+      function adjustValue(id, delta, min, max) {
+        const input = document.getElementById(id);
+        let value = parseInt(input.value) + delta;
+        value = Math.max(min, Math.min(max, value));
+        input.value = value;
+        calculateOutputs();
+        pingHeight();
+      }
+      function fmtMoney(n) {
+        return "$" + Math.round(n).toLocaleString();
+      }
 
-    const x = marginLeft + (usableWidth - drawWidth) / 2;
-    const y = top;
+      // ---------- core math / UI ----------
+      function calculateOutputs() {
+        const get = (id) => parseFloat(document.getElementById(id)?.value || 0);
+        const laborHours = get("labor_hours_val"),
+          shifts = get("shifts_per_day_val"),
+          days = get("days_per_week_val");
 
-    doc.addImage(dataURL, "PNG", x, y, drawWidth, drawHeight);
+        const annualCost = get("annual_labor_cost_val"),
+          cobot = get("cobot_cost"),
+          integration = get("integration_cost"),
+          training = get("training_cost");
 
-    const afterY = y + drawHeight + 6;
+        const fte = (laborHours * shifts * days * 52) / 2080;
+        const laborSavings = fte * annualCost;
+        const totalInvestment = cobot + integration + training;
 
-    if (underline) {
-      doc.setDrawColor(color);
-      doc.setLineWidth(.5);
-      doc.line(marginLeft, afterY, pageWidth - marginRight, afterY);
-    }
+        const injurySavings = fte * INJURY_RATE_PER_FTE;
+        const trainingSavings = fte * TRAINING_RATE_PER_FTE;
 
-    return afterY + 4; // next content Y
-  }
+        const payback =
+          laborSavings > 0 ? (totalInvestment / laborSavings) * 12 : 0;
+        const roi =
+          totalInvestment > 0
+            ? ((laborSavings +
+                injurySavings +
+                trainingSavings -
+                totalInvestment) /
+                totalInvestment) *
+              100
+            : 0;
 
-  // Dotted leader line helper
-  function writeLine(doc, y, label, value, opts = {}) {
-    const leftX = opts.leftX ?? 15, rightX = opts.rightX ?? 190, dotGap = 1.5;
-    const valueWidth = doc.getTextWidth(value);
-    const maxLabelWidth = rightX - leftX - valueWidth - 8;
-    const labelText = doc.splitTextToSize(label, maxLabelWidth);
+        document.getElementById("fte_summary").textContent = fte.toFixed(2);
+        document.getElementById("labor_savings").textContent =
+          fmtMoney(laborSavings);
+        document.getElementById("total_investment").textContent =
+          fmtMoney(totalInvestment);
+        document.getElementById("payback_period").textContent =
+          (isFinite(payback) ? payback.toFixed(1) : "—") + " months";
+        document.getElementById("roi").textContent =
+          (isFinite(roi) ? roi.toFixed(1) : "—") + "%";
+        document.getElementById("injury_savings_view").textContent =
+          fmtMoney(injurySavings);
+        document.getElementById("training_savings_view").textContent =
+          fmtMoney(trainingSavings);
+      }
 
-    doc.setFont("helvetica","bold"); 
-    doc.text(labelText[0], leftX, y);
+      function resetInputs() {
+        const blanks = {
+          task_name: "",
+          labor_hours: "",
+          labor_hours_val: "",
+          shifts_per_day: "",
+          shifts_per_day_val: "",
+          days_per_week_val: "1",
+          annual_labor_cost_val: "",
+          cobot_cost: "",
+          integration_cost: "",
+          training_cost: "",
+        };
+        for (const [id, val] of Object.entries(blanks)) {
+          const el = document.getElementById(id);
+          if (el) el.value = val;
+        }
+        const laborSlider = document.getElementById("labor_hours");
+        if (laborSlider) laborSlider.value = laborSlider.min;
+        const shiftsSlider = document.getElementById("shifts_per_day");
+        if (shiftsSlider) shiftsSlider.value = shiftsSlider.min;
 
-    let dotX = leftX + doc.getTextWidth(labelText[0]) + 2, dotsEnd = rightX - valueWidth - 2;
-    while (dotX < dotsEnd) { doc.text('.', dotX, y); dotX += dotGap; }
+        calculateOutputs();
+        pingHeight();
+      }
 
-    doc.setFont("helvetica","normal"); 
-    doc.text(value, rightX, y, { align: "right" });
+      /* ================= PDF: single logo-strip header ================= */
 
-    for (let i = 1; i < labelText.length; i++) {
-      y += 8;
-      doc.setFont("helvetica","bold");
-      doc.text(labelText[i], leftX, y);
-    }
-    return y + 8;
-  }
+      // Draw a single header image inside margins (fills width when fitWidth=true)
+      async function drawLogoStrip(doc, opts = {}) {
+        const {
+          url = LOGO_STRIP_URL,
+          marginLeft = 10, // mm
+          marginRight = 10, // mm
+          top = 8, // mm from top
+          fitWidth = true, // make image span the usable width
+          maxHeightMM = 28, // safety cap (mainly used if fitWidth=false)
+          underline = true,
+          color = "#6b7280",
+        } = opts;
 
-  // Main export
-  async function exportToPDF(){
-    const { jsPDF } = window.jspdf;
-    const doc = new jsPDF();
-    const neutral = "#6b7280"; // soft gray to match UI
+        const pageWidth = doc.internal.pageSize.getWidth();
+        const usableWidth = pageWidth - marginLeft - marginRight;
 
-    // Header image (fills the width)
-    const bodyStartY = await drawLogoStrip(doc, {
-      url: LOGO_STRIP_URL,
-      marginLeft: 10,
-      marginRight: 10,
-      top: 8,
-      fitWidth: true,
-      maxHeightMM: 28,
-      underline: true,
-      color: neutral
-    });
+        // Load as data URL
+        let dataURL = null;
+        try {
+          const res = await fetch(url, { mode: "cors", cache: "no-cache" });
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          const blob = await res.blob();
+          dataURL = await new Promise((resolve, reject) => {
+            const fr = new FileReader();
+            fr.onload = () => resolve(fr.result);
+            fr.onerror = reject;
+            fr.readAsDataURL(blob);
+          });
+        } catch (e) {
+          console.warn("Header image failed to load:", url, e);
+          return top + 4;
+        }
 
-    // decode helpers
-    const d = (s) => {
-      if (s == null) return "";
-      const el = document.createElement("textarea");
-      el.innerHTML = String(s);
-      return el.value.replace(/\u00A0/g, " ");
-    };
-    const getTxt = (id) => {
-      const el = document.getElementById(id);
-      return d(el ? (el.value ?? el.textContent ?? "") : "");
-    };
+        // Measure natural size to preserve aspect ratio
+        const img = new Image();
+        await new Promise((resolve) => {
+          img.onload = resolve;
+          img.src = dataURL;
+        });
 
-    // Title
-    doc.setFont("helvetica","bold");
-    doc.setFontSize(16);
-    doc.setTextColor(neutral);
-    doc.text("Cobot ROI & Payback Summary", 10, bodyStartY + 8);
+        const ratio =
+          img.width && img.height ? img.height / img.width : 300 / 2400; // fallback ratio
 
-    // Body
-    let y = bodyStartY + 18;
-    doc.setFontSize(12);
-    doc.setTextColor("#000");
+        let drawWidth, drawHeight;
+        if (fitWidth) {
+          drawWidth = usableWidth;
+          drawHeight = drawWidth * ratio;
+        } else {
+          drawHeight = maxHeightMM;
+          drawWidth = drawHeight / ratio;
+          if (drawWidth > usableWidth) {
+            // guard against overflow
+            drawWidth = usableWidth;
+            drawHeight = drawWidth * ratio;
+          }
+        }
 
-    const section = (title) => {
-      doc.setFont("helvetica","bold");
-      doc.setTextColor(neutral);
-      doc.text(title, 10, y);
-      doc.setDrawColor(neutral);
-      doc.line(10, y+1.5, 70, y+1.5);
-      y += 8;
-      doc.setTextColor("#000");
-    };
+        const x = marginLeft + (usableWidth - drawWidth) / 2;
+        const y = top;
 
-    // ===== Inputs =====
-    section("Inputs");
-    [
-      ["Task Name", getTxt("task_name")],
-      ["Labor Hours/Day", getTxt("labor_hours_val")],
-      ["Shifts/Day", getTxt("shifts_per_day_val")],
-      ["Days/Week", getTxt("days_per_week_val")],
-      ["Annual Labor Cost", d("$" + Number(document.getElementById("annual_labor_cost_val").value || 0).toLocaleString())],
-      ["Cobot System Cost", d("$" + Number(document.getElementById("cobot_cost").value || 0).toLocaleString())],
-      ["Programming + Integration Cost", d("$" + Number(document.getElementById("integration_cost").value || 0).toLocaleString())],
-      ["Training + Support Cost", d("$" + Number(document.getElementById("training_cost").value || 0).toLocaleString())],
-    ].forEach(([label, value]) => {
-      y = writeLine(doc, y, label, String(value));
-    });
+        doc.addImage(dataURL, "PNG", x, y, drawWidth, drawHeight);
 
-    // ===== Summary =====
-    section("Summary");
-    y = writeLine(doc, y, "FTEs Replaced", getTxt("fte_summary"));
-    const laborVal = getTxt("labor_savings");
-    y = writeLine(doc, y, "Annual Labor Savings", laborVal);
+        const afterY = y + drawHeight + 6;
 
-    // Indented subs
-    doc.setFont("helvetica","bold");
-    doc.text("  Injury Reduction Savings", 15, y);
-    doc.setFont("helvetica","normal");
-    doc.text("(" + getTxt("injury_savings_view") + ")", 190, y, { align: "right" });
-    y += 8;
+        if (underline) {
+          doc.setDrawColor(color);
+          doc.setLineWidth(0.5);
+          doc.line(marginLeft, afterY, pageWidth - marginRight, afterY);
+        }
 
-    doc.setFont("helvetica","bold");
-    doc.text("  Training Savings from Turnover", 15, y);
-    doc.setFont("helvetica","normal");
-    doc.text("(" + getTxt("training_savings_view") + ")", 190, y, { align: "right" });
-    y += 8;
+        return afterY + 4; // next content Y
+      }
 
-    y = writeLine(doc, y, "Total Investment", getTxt("total_investment"));
-    y = writeLine(doc, y, "Payback Period", getTxt("payback_period"));
-    y = writeLine(doc, y, "First Year ROI", getTxt("roi"));
+      // Dotted leader line helper
+      function writeLine(doc, y, label, value, opts = {}) {
+        const leftX = opts.leftX ?? 15,
+          rightX = opts.rightX ?? 190,
+          dotGap = 1.5;
+        const valueWidth = doc.getTextWidth(value);
+        const maxLabelWidth = rightX - leftX - valueWidth - 8;
+        const labelText = doc.splitTextToSize(label, maxLabelWidth);
 
-    doc.save("cobot-roi-summary.pdf");
-  }
+        doc.setFont("helvetica", "bold");
+        doc.text(labelText[0], leftX, y);
 
-  // ---------- iframe auto-resize (for embedding) ----------
-  function postHeight(){
-    const h = Math.max(
-      document.documentElement.scrollHeight,
-      document.body.scrollHeight
-    );
-    // Post a message the parent can listen for to resize the iframe
-    if (window.parent && window.parent !== window) {
-      window.parent.postMessage({ type:'roiCalcHeight', height:h }, '*');
-    }
-  }
-  const pingHeight = () => { try { postHeight(); } catch{} };
+        let dotX = leftX + doc.getTextWidth(labelText[0]) + 2,
+          dotsEnd = rightX - valueWidth - 2;
+        while (dotX < dotsEnd) {
+          doc.text(".", dotX, y);
+          dotX += dotGap;
+        }
 
-  window.addEventListener('load', () => {
-    calculateOutputs();
-    postHeight();
-    // Observe size changes
-    try {
-      new ResizeObserver(postHeight).observe(document.body);
-    } catch {}
-  });
-  document.addEventListener('input', postHeight, true);
-</script>
+        doc.setFont("helvetica", "normal");
+        doc.text(value, rightX, y, { align: "right" });
 
+        for (let i = 1; i < labelText.length; i++) {
+          y += 8;
+          doc.setFont("helvetica", "bold");
+          doc.text(labelText[i], leftX, y);
+        }
+        return y + 8;
+      }
 
+      // Main export
+      async function exportToPDF() {
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+        const neutral = "#6b7280"; // soft gray to match UI
 
-</body>
+        // Header image (fills the width)
+        const bodyStartY = await drawLogoStrip(doc, {
+          url: LOGO_STRIP_URL,
+          marginLeft: 10,
+          marginRight: 10,
+          top: 8,
+          fitWidth: true,
+          maxHeightMM: 28,
+          underline: true,
+          color: neutral,
+        });
+
+        // decode helpers
+        const d = (s) => {
+          if (s == null) return "";
+          const el = document.createElement("textarea");
+          el.innerHTML = String(s);
+          return el.value.replace(/\u00A0/g, " ");
+        };
+        const getTxt = (id) => {
+          const el = document.getElementById(id);
+          return d(el ? el.value ?? el.textContent ?? "" : "");
+        };
+
+        // Title
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(16);
+        doc.setTextColor(neutral);
+        doc.text("Cobot ROI & Payback Summary", 10, bodyStartY + 8);
+
+        // Body
+        let y = bodyStartY + 18;
+        doc.setFontSize(12);
+        doc.setTextColor("#000");
+
+        const section = (title) => {
+          doc.setFont("helvetica", "bold");
+          doc.setTextColor(neutral);
+          doc.text(title, 10, y);
+          doc.setDrawColor(neutral);
+          doc.line(10, y + 1.5, 70, y + 1.5);
+          y += 8;
+          doc.setTextColor("#000");
+        };
+
+        // ===== Inputs =====
+        section("Inputs");
+        [
+          ["Task Name", getTxt("task_name")],
+          ["Labor Hours/Day", getTxt("labor_hours_val")],
+          ["Shifts/Day", getTxt("shifts_per_day_val")],
+          ["Days/Week", getTxt("days_per_week_val")],
+          [
+            "Annual Labor Cost",
+            d(
+              "$" +
+                Number(
+                  document.getElementById("annual_labor_cost_val").value || 0
+                ).toLocaleString()
+            ),
+          ],
+          [
+            "Cobot System Cost",
+            d(
+              "$" +
+                Number(
+                  document.getElementById("cobot_cost").value || 0
+                ).toLocaleString()
+            ),
+          ],
+          [
+            "Programming + Integration Cost",
+            d(
+              "$" +
+                Number(
+                  document.getElementById("integration_cost").value || 0
+                ).toLocaleString()
+            ),
+          ],
+          [
+            "Training + Support Cost",
+            d(
+              "$" +
+                Number(
+                  document.getElementById("training_cost").value || 0
+                ).toLocaleString()
+            ),
+          ],
+        ].forEach(([label, value]) => {
+          y = writeLine(doc, y, label, String(value));
+        });
+
+        // ===== Summary =====
+        section("Summary");
+        y = writeLine(doc, y, "FTEs Replaced", getTxt("fte_summary"));
+        const laborVal = getTxt("labor_savings");
+        y = writeLine(doc, y, "Annual Labor Savings", laborVal);
+
+        // Indented subs
+        doc.setFont("helvetica", "bold");
+        doc.text("  Injury Reduction Savings", 15, y);
+        doc.setFont("helvetica", "normal");
+        doc.text("(" + getTxt("injury_savings_view") + ")", 190, y, {
+          align: "right",
+        });
+        y += 8;
+
+        doc.setFont("helvetica", "bold");
+        doc.text("  Training Savings from Turnover", 15, y);
+        doc.setFont("helvetica", "normal");
+        doc.text("(" + getTxt("training_savings_view") + ")", 190, y, {
+          align: "right",
+        });
+        y += 8;
+
+        y = writeLine(doc, y, "Total Investment", getTxt("total_investment"));
+        y = writeLine(doc, y, "Payback Period", getTxt("payback_period"));
+        y = writeLine(doc, y, "First Year ROI", getTxt("roi"));
+
+        doc.save("cobot-roi-summary.pdf");
+      }
+
+      // ---------- iframe auto-resize (for embedding) ----------
+      function postHeight() {
+        const h = Math.max(
+          document.documentElement.scrollHeight,
+          document.body.scrollHeight
+        );
+        // Post a message the parent can listen for to resize the iframe
+        if (window.parent && window.parent !== window) {
+          window.parent.postMessage({ type: "roiCalcHeight", height: h }, "*");
+        }
+      }
+      const pingHeight = () => {
+        try {
+          postHeight();
+        } catch {}
+      };
+
+      window.addEventListener("load", () => {
+        calculateOutputs();
+        postHeight();
+        // Observe size changes
+        try {
+          new ResizeObserver(postHeight).observe(document.body);
+        } catch {}
+      });
+      document.addEventListener("input", postHeight, true);
+    </script>
+  </body>
 </html>
-
-
-
-
