@@ -229,35 +229,63 @@
   </div>   <!-- /wrapper -->
 
 <script>
-  // ---------- constants ----------
+  /* ================= Brand-specific logo selection (test build) ================= */
+  // Map parent hostnames -> logo image URLs
+  const BRAND_LOGOS = {
+    "autosolwi.com": "https://cobotworks.org/wp-content/uploads/2025/11/Automation-Solutions.png",
+    "automatech.com": "https://cobotworks.org/wp-content/uploads/2025/11/AutomaTech_Logo3.jpg",
+    "butlerandland.com": "https://cobotworks.org/wp-content/uploads/2025/11/butler_and_land_NEW-color.png",
+    "bg-technologies.com": "https://cobotworks.org/wp-content/uploads/2025/11/BG-Logo.png",
+    "cimtecautomation.com": "https://cobotworks.org/wp-content/uploads/2025/11/CIMTEC_Logo.png"
+  };
+
+  function getParentHostname() {
+    try {
+      if (!document.referrer) return null;
+      const h = new URL(document.referrer).hostname || null;
+      return h ? h.replace(/^www\./, "") : null;
+    } catch { return null; }
+  }
+
+  // Allow override via ?brandLogo=<url> on the embed URL (handy for QA)
+  function getLogoUrlForContext() {
+    const qp = new URLSearchParams(location.search);
+    const testOverride = qp.get("brandLogo");
+    if (testOverride) return testOverride;
+
+    const host = getParentHostname();
+    if (host && BRAND_LOGOS[host]) return BRAND_LOGOS[host];
+
+    // No generic fallback here (boss wants company-specific only)
+    return null;
+  }
+
+  // This will be used by the PDF header drawer.
+  const LOGO_STRIP_URL = getLogoUrlForContext(); // may be null to skip header image
+
+  /* ================= Core calculator constants ================= */
   const INJURY_RATE_PER_FTE = 1540;   // NSC midpoint
   const TRAINING_RATE_PER_FTE = 1286; // Onin Staffing
 
-  // Use a local asset to avoid CORS issues.
-  const LOGO_STRIP_URL = "./all_logos.png";
-
-  // ---------- input sync helpers ----------
+  /* ================= Input helpers ================= */
   function syncSliderAndInput(slider, inputId){
     document.getElementById(inputId).value = slider.value;
-    calculateOutputs();
-    pingHeight();
+    calculateOutputs(); pingHeight();
   }
   function syncInputAndSlider(input, sliderId){
     document.getElementById(sliderId).value = input.value;
-    calculateOutputs();
-    pingHeight();
+    calculateOutputs(); pingHeight();
   }
   function adjustValue(id, delta, min, max){
     const input = document.getElementById(id);
     let value = parseInt(input.value) + delta;
     value = Math.max(min, Math.min(max, value));
     input.value = value;
-    calculateOutputs();
-    pingHeight();
+    calculateOutputs(); pingHeight();
   }
   function fmtMoney(n){ return "$" + Math.round(n).toLocaleString(); }
 
-  // ---------- core math / UI ----------
+  /* ================= Math & UI ================= */
   function calculateOutputs(){
     const get = id => parseFloat(document.getElementById(id)?.value || 0);
     const laborHours = get('labor_hours_val'),
@@ -290,16 +318,10 @@
 
   function resetInputs() {
     const blanks = {
-      task_name: '',
-      labor_hours: '',
-      labor_hours_val: '',
-      shifts_per_day: '',
-      shifts_per_day_val: '',
-      days_per_week_val: '1',
-      annual_labor_cost_val: '',
-      cobot_cost: '',
-      integration_cost: '',
-      training_cost: ''
+      task_name: '', labor_hours: '', labor_hours_val: '',
+      shifts_per_day: '', shifts_per_day_val: '',
+      days_per_week_val: '1', annual_labor_cost_val: '',
+      cobot_cost: '', integration_cost: '', training_cost: ''
     };
     for (const [id, val] of Object.entries(blanks)) {
       const el = document.getElementById(id);
@@ -310,31 +332,27 @@
     const shiftsSlider = document.getElementById('shifts_per_day');
     if (shiftsSlider) shiftsSlider.value = shiftsSlider.min;
 
-    calculateOutputs();
-    pingHeight();
+    calculateOutputs(); pingHeight();
   }
 
-  /* ================= PDF: single logo-strip header ================= */
-
-  // Draw a single header image inside margins (fills width when fitWidth=true)
+  /* ================= PDF: logo header & content ================= */
   async function drawLogoStrip(doc, opts = {}) {
+    // If we don't have a brand logo for this host, skip drawing the image.
+    if (!LOGO_STRIP_URL) return (opts.top || 8) + 4;
+
     const {
       url = LOGO_STRIP_URL,
-      marginLeft = 10,   // mm
-      marginRight = 10,  // mm
-      top = 8,           // mm from top
-      fitWidth = true,   // make image span the usable width
-      maxHeightMM = 28,  // safety cap (mainly used if fitWidth=false)
-      underline = true,
-      color = "#6b7280"
+      marginLeft = 10, marginRight = 10, top = 8,
+      fitWidth = true, maxHeightMM = 28,
+      underline = true, color = "#6b7280"
     } = opts;
 
     const pageWidth   = doc.internal.pageSize.getWidth();
     const usableWidth = pageWidth - marginLeft - marginRight;
 
-    // Load as data URL
     let dataURL = null;
     try {
+      // Needs CORS enabled on the image host to embed in PDF.
       const res = await fetch(url, { mode: "cors", cache: "no-cache" });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const blob = await res.blob();
@@ -345,27 +363,19 @@
         fr.readAsDataURL(blob);
       });
     } catch (e) {
-      console.warn("Header image failed to load:", url, e);
+      console.warn("Logo fetch failed (skipping header image):", url, e);
       return top + 4;
     }
 
-    // Measure natural size to preserve aspect ratio
     const img = new Image();
     await new Promise((resolve) => { img.onload = resolve; img.src = dataURL; });
 
-    const ratio = (img.width && img.height) ? (img.height / img.width) : (300 / 2400); // fallback ratio
-
+    const ratio = (img.width && img.height) ? (img.height / img.width) : (300 / 2400);
     let drawWidth, drawHeight;
-    if (fitWidth) {
-      drawWidth  = usableWidth;
-      drawHeight = drawWidth * ratio;
-    } else {
-      drawHeight = maxHeightMM;
-      drawWidth  = drawHeight / ratio;
-      if (drawWidth > usableWidth) { // guard against overflow
-        drawWidth  = usableWidth;
-        drawHeight = drawWidth * ratio;
-      }
+    if (fitWidth) { drawWidth = usableWidth; drawHeight = drawWidth * ratio; }
+    else {
+      drawHeight = maxHeightMM; drawWidth = drawHeight / ratio;
+      if (drawWidth > usableWidth) { drawWidth = usableWidth; drawHeight = drawWidth * ratio; }
     }
 
     const x = marginLeft + (usableWidth - drawWidth) / 2;
@@ -374,17 +384,14 @@
     doc.addImage(dataURL, "PNG", x, y, drawWidth, drawHeight);
 
     const afterY = y + drawHeight + 6;
-
     if (underline) {
       doc.setDrawColor(color);
       doc.setLineWidth(.5);
       doc.line(marginLeft, afterY, pageWidth - marginRight, afterY);
     }
-
-    return afterY + 4; // next content Y
+    return afterY + 4;
   }
 
-  // Dotted leader line helper
   function writeLine(doc, y, label, value, opts = {}) {
     const leftX = opts.leftX ?? 15, rightX = opts.rightX ?? 190, dotGap = 1.5;
     const valueWidth = doc.getTextWidth(value);
@@ -401,32 +408,21 @@
     doc.text(value, rightX, y, { align: "right" });
 
     for (let i = 1; i < labelText.length; i++) {
-      y += 8;
-      doc.setFont("helvetica","bold");
-      doc.text(labelText[i], leftX, y);
+      y += 8; doc.setFont("helvetica","bold"); doc.text(labelText[i], leftX, y);
     }
     return y + 8;
   }
 
-  // Main export
   async function exportToPDF(){
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
-    const neutral = "#6b7280"; // soft gray to match UI
+    const neutral = "#6b7280";
 
-    // Header image (fills the width)
     const bodyStartY = await drawLogoStrip(doc, {
-      url: LOGO_STRIP_URL,
-      marginLeft: 10,
-      marginRight: 10,
-      top: 8,
-      fitWidth: true,
-      maxHeightMM: 28,
-      underline: true,
-      color: neutral
+      marginLeft: 10, marginRight: 10, top: 8,
+      fitWidth: true, maxHeightMM: 28, underline: true, color: neutral
     });
 
-    // decode helpers
     const d = (s) => {
       if (s == null) return "";
       const el = document.createElement("textarea");
@@ -438,28 +434,18 @@
       return d(el ? (el.value ?? el.textContent ?? "") : "");
     };
 
-    // Title
-    doc.setFont("helvetica","bold");
-    doc.setFontSize(16);
-    doc.setTextColor(neutral);
+    doc.setFont("helvetica","bold"); doc.setFontSize(16); doc.setTextColor(neutral);
     doc.text("Cobot ROI & Payback Summary", 10, bodyStartY + 8);
 
-    // Body
     let y = bodyStartY + 18;
-    doc.setFontSize(12);
-    doc.setTextColor("#000");
+    doc.setFontSize(12); doc.setTextColor("#000");
 
     const section = (title) => {
-      doc.setFont("helvetica","bold");
-      doc.setTextColor(neutral);
-      doc.text(title, 10, y);
-      doc.setDrawColor(neutral);
-      doc.line(10, y+1.5, 70, y+1.5);
-      y += 8;
-      doc.setTextColor("#000");
+      doc.setFont("helvetica","bold"); doc.setTextColor(neutral); doc.text(title, 10, y);
+      doc.setDrawColor(neutral); doc.line(10, y+1.5, 70, y+1.5);
+      y += 8; doc.setTextColor("#000");
     };
 
-    // ===== Inputs =====
     section("Inputs");
     [
       ["Task Name", getTxt("task_name")],
@@ -470,28 +456,17 @@
       ["Cobot System Cost", d("$" + Number(document.getElementById("cobot_cost").value || 0).toLocaleString())],
       ["Programming + Integration Cost", d("$" + Number(document.getElementById("integration_cost").value || 0).toLocaleString())],
       ["Training + Support Cost", d("$" + Number(document.getElementById("training_cost").value || 0).toLocaleString())],
-    ].forEach(([label, value]) => {
-      y = writeLine(doc, y, label, String(value));
-    });
+    ].forEach(([label, value]) => { y = writeLine(doc, y, label, String(value)); });
 
-    // ===== Summary =====
     section("Summary");
     y = writeLine(doc, y, "FTEs Replaced", getTxt("fte_summary"));
-    const laborVal = getTxt("labor_savings");
-    y = writeLine(doc, y, "Annual Labor Savings", laborVal);
+    y = writeLine(doc, y, "Annual Labor Savings", getTxt("labor_savings"));
 
-    // Indented subs
-    doc.setFont("helvetica","bold");
-    doc.text("  Injury Reduction Savings", 15, y);
-    doc.setFont("helvetica","normal");
-    doc.text("(" + getTxt("injury_savings_view") + ")", 190, y, { align: "right" });
-    y += 8;
+    doc.setFont("helvetica","bold"); doc.text("  Injury Reduction Savings", 15, y);
+    doc.setFont("helvetica","normal"); doc.text("(" + getTxt("injury_savings_view") + ")", 190, y, { align: "right" }); y += 8;
 
-    doc.setFont("helvetica","bold");
-    doc.text("  Training Savings from Turnover", 15, y);
-    doc.setFont("helvetica","normal");
-    doc.text("(" + getTxt("training_savings_view") + ")", 190, y, { align: "right" });
-    y += 8;
+    doc.setFont("helvetica","bold"); doc.text("  Training Savings from Turnover", 15, y);
+    doc.setFont("helvetica","normal"); doc.text("(" + getTxt("training_savings_view") + ")", 190, y, { align: "right" }); y += 8;
 
     y = writeLine(doc, y, "Total Investment", getTxt("total_investment"));
     y = writeLine(doc, y, "Payback Period", getTxt("payback_period"));
@@ -500,13 +475,9 @@
     doc.save("cobot-roi-summary.pdf");
   }
 
-  // ---------- iframe auto-resize (for embedding) ----------
+  /* ================= Iframe auto-resize ================= */
   function postHeight(){
-    const h = Math.max(
-      document.documentElement.scrollHeight,
-      document.body.scrollHeight
-    );
-    // Post a message the parent can listen for to resize the iframe
+    const h = Math.max(document.documentElement.scrollHeight, document.body.scrollHeight);
     if (window.parent && window.parent !== window) {
       window.parent.postMessage({ type:'roiCalcHeight', height:h }, '*');
     }
@@ -516,15 +487,14 @@
   window.addEventListener('load', () => {
     calculateOutputs();
     postHeight();
-    // Observe size changes
-    try {
-      new ResizeObserver(postHeight).observe(document.body);
-    } catch {}
+    try { new ResizeObserver(postHeight).observe(document.body); } catch {}
   });
   document.addEventListener('input', postHeight, true);
 </script>
 
+
 </body>
 </html>
+
 
 
